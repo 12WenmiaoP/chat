@@ -1,33 +1,31 @@
 var MY_NTFY_TOPIC = "wenmiaop_chat_9527";
+var lastMsgId = 0;
 
-function sendMobileNotification(msg) {
-    if (!MY_NTFY_TOPIC) return;
+function sendMobileNotification(title, msg) {
+    if (!MY_NTFY_TOPIC || MY_NTFY_TOPIC === "wenmiaop_chat_9527") return;
+    var bodyText = msg ? (msg.length > 80 ? msg.substring(0, 80) + '...' : msg) : '[新消息]';
     fetch('https://ntfy.sh/' + MY_NTFY_TOPIC, {
         method: 'POST',
-        body: msg
-    }).catch(function(e){});
+        headers: {
+            'Title': title,
+            'Click': 'https://12wenmiaop.github.io/chat/',
+            'Priority': 'high'
+        },
+        body: bodyText
+    }).catch(function(e) {});
 }
 
 window.addEventListener('load', function() {
     setTimeout(function() {
-        sendMobileNotification("测试成功！网页已连接。");
-    }, 3000);
-});
-
-var lastText = "";
-window.addEventListener('load', function() {
-    setTimeout(function() {
-        var observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(m) {
-                m.addedNodes.forEach(function(node) {
-                    var text = (node.innerText || node.textContent || "").trim();
-                    if (text.length > 1 && text.length < 200 && text !== lastText) {
-                        lastText = text;
-                        sendMobileNotification("【新消息】 " + text);
-                    }
-                });
+        if (typeof window._registerPartnerMessageListener === 'function') {
+            window._registerPartnerMessageListener(function(message) {
+                if (message && message.id && message.id !== lastMsgId) {
+                    lastMsgId = message.id;
+                    var partnerName = (typeof settings !== 'undefined' && settings.partnerName) ? settings.partnerName : '对方';
+                    var text = message.text || '[图片/表情]';
+                    sendMobileNotification(partnerName + ' 发来消息', text);
+                }
             });
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-    }, 5000);
+        }
+    }, 2000);
 });
