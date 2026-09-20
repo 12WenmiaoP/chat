@@ -1,29 +1,35 @@
-var MY_NTFY_TOPIC = "wenmiaop_chat_9527";
-var lastMsgId = 0;
+if ("Notification" in window) {
+    if (Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
+}
 
-function sendMobileNotification(title, msg) {
-    if (!MY_NTFY_TOPIC || MY_NTFY_TOPIC === "wenmiaop_chat_9527") return;
-    var bodyText = msg ? (msg.length > 80 ? msg.substring(0, 80) + '...' : msg) : '[新消息]';
-    fetch('https://ntfy.sh/' + MY_NTFY_TOPIC, {
-        method: 'POST',
-        headers: {
-            'Title': title,
-            'Click': 'https://12wenmiaop.github.io/chat/',
-            'Priority': 'high'
-        },
-        body: bodyText
-    }).catch(function(e) {});
+function showNativeNotification(title, bodyText) {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    
+    var text = bodyText ? (bodyText.length > 60 ? bodyText.substring(0, 60) + '...' : bodyText) : '[新消息]';
+    
+    var notification = new Notification(title, {
+        body: text,
+        tag: 'chat-message',
+        requireInteraction: true
+    });
+
+    notification.onclick = function() {
+        window.focus();
+        notification.close();
+    };
 }
 
 window.addEventListener('load', function() {
     setTimeout(function() {
         if (typeof window._registerPartnerMessageListener === 'function') {
             window._registerPartnerMessageListener(function(message) {
-                if (message && message.id && message.id !== lastMsgId) {
-                    lastMsgId = message.id;
+                if (message && message.id) {
                     var partnerName = (typeof settings !== 'undefined' && settings.partnerName) ? settings.partnerName : '对方';
                     var text = message.text || '[图片/表情]';
-                    sendMobileNotification(partnerName + ' 发来消息', text);
+                    
+                    showNativeNotification(partnerName + ' 发来消息', text);
                 }
             });
         }
